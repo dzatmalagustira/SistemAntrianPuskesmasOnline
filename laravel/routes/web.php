@@ -34,6 +34,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::middleware(['auth', 'role:patient'])->prefix('patient')->name('patient.')->group(function () {
     Route::get('/dashboard', [PatientDashboardController::class, 'index'])->name('dashboard');
     Route::get('/booking/create', [PatientDashboardController::class, 'create'])->name('booking.create');
+    Route::get('/booking/quota', [PatientDashboardController::class, 'quota'])
+    ->name('booking.quota');
     Route::post('/booking', [PatientDashboardController::class, 'store'])->name('booking.store');
     Route::get('/booking/{booking}', [PatientDashboardController::class, 'show'])->name('booking.show');
     Route::patch('/booking/{booking}/cancel', [PatientDashboardController::class, 'cancel'])->name('booking.cancel');

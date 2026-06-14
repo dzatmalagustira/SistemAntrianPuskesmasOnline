@@ -56,6 +56,26 @@ class DashboardController extends Controller
             'doctors' => Doctor::with(['poli', 'schedules'])->get(),
         ]);
     }
+    
+    public function quota(\Illuminate\Http\Request $request, BookingService $service)
+{
+    $request->validate([
+        'doctor_id' => ['required', 'exists:doctors,id'],
+        'visit_date' => ['required', 'date'],
+    ]);
+
+    $doctor = Doctor::findOrFail($request->doctor_id);
+
+    $available = $service->availableQuota(
+        $request->doctor_id,
+        $request->visit_date
+    );
+
+    return response()->json([
+        'daily_quota' => $doctor->daily_quota,
+        'available_quota' => $available,
+    ]);
+}
 
     public function store(BookingRequest $request, BookingService $service)
     {
@@ -88,7 +108,7 @@ class DashboardController extends Controller
             'doctor_id' => $validated['doctor_id'],
             'visit_date' => $validated['visit_date'],
         ]));
-
+		
         $booking = Booking::create([
             'user_id' => Auth::id(),
             'doctor_id' => $validated['doctor_id'],

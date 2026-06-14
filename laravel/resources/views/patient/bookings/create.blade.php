@@ -71,7 +71,9 @@
                                     <p class="text-sm text-slate-500 dark:text-slate-400" x-text="doctor.specialty"></p>
                                     <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
                                         <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-700 dark:text-slate-300" x-text="doctor.experience_years + ' tahun pengalaman'"></span>
-                                        <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200" x-text="'Kuota ' + doctor.daily_quota + '/hari'"></span>
+                                        <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"
+      x-text="'Sisa Kuota ' + getDoctorQuota(doctor) + '/' + doctor.daily_quota">
+</span>
                                     </div>
                                     <p class="mt-3 text-xs font-semibold text-cyan-700 dark:text-cyan-200" x-text="'Praktik: ' + scheduleText(doctor)"></p>
                                 </div>
@@ -123,6 +125,28 @@
 function bookingForm() {
     return {
         form: { poli_id: '{{ old("poli_id") }}', doctor_id: '{{ old("doctor_id") }}', visit_date: '{{ old("visit_date") }}' },
+        quotas: {},
+        quotaKey(doctorId) {
+    return doctorId + '_' + this.form.visit_date;
+},
+
+getDoctorQuota(doctor) {
+    if (!this.form.visit_date) return doctor.daily_quota;
+
+    const key = this.quotaKey(doctor.id);
+    return this.quotas[key] ?? doctor.daily_quota;
+},
+
+async loadQuota() {
+    if (!this.form.doctor_id || !this.form.visit_date) return;
+
+    const url = `{{ route('patient.booking.quota') }}?doctor_id=${this.form.doctor_id}&visit_date=${this.form.visit_date}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    this.quotas[this.quotaKey(this.form.doctor_id)] = data.available_quota;
+},
         doctors: [],
         polis: @json($polis),
         minDate: new Date().toISOString().split('T')[0],
@@ -141,6 +165,7 @@ function bookingForm() {
             this.doctors = poli ? poli.doctors : [];
             if (!this.doctors.some(d => d.id == this.form.doctor_id)) this.form.doctor_id = '';
             this.validateDate();
+            this.loadQuota();
         },
         selectedDoctor() { return this.doctors.find(d => d.id == this.form.doctor_id); },
         selectedWeekday() {
@@ -182,13 +207,27 @@ function bookingForm() {
             if (!this.doctorPracticesOnSelectedDate()) {
                 this.dateError = 'Dokter tidak praktik pada hari ' + (this.dayNames[weekday] || weekday) + '. Pilih tanggal lain sesuai jadwal: ' + this.scheduleText(doctor) + '.';
             }
+            this.loadQuota();
         },
         canSubmit() {
-            return this.form.poli_id && this.form.doctor_id && this.form.visit_date && !this.dateError && this.doctorPracticesOnSelectedDate();
-        },
+    const doctor = this.selectedDoctor();
+
+    return this.form.poli_id 
+        && this.form.doctor_id 
+        && this.form.visit_date 
+        && !this.dateError 
+        && this.doctorPracticesOnSelectedDate()
+        && doctor
+        && this.getDoctorQuota(doctor) > 0;
+},
         getPoliName() { const poli = this.polis.find(p => p.id == this.form.poli_id); return poli ? poli.name : '-'; },
         getDoctorName() { const d = this.selectedDoctor(); return d ? 'Dr. ' + d.name : '-'; },
-        quotaText() { const d = this.selectedDoctor(); return d ? d.daily_quota + ' pasien/hari' : '-'; },
+        quotaText() {
+    const d = this.selectedDoctor();
+    if (!d) return '-';
+
+    return this.getDoctorQuota(d) + ' pasien tersisa';
+},
         estimatedWait() { const d = this.selectedDoctor(); return d ? '+/- 10 menit' : '-'; },
         init() { if (this.form.poli_id) this.loadDoctors(); this.validateDate(); }
     };
