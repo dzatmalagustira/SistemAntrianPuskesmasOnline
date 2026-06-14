@@ -1,110 +1,82 @@
 <?php
 
-// Lokasi file controller
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Admin; // Menentukan lokasi controller ini berada di folder Admin
 
-// Controller utama Laravel
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Controller; // Mengambil controller utama Laravel
+use App\Http\Requests\DoctorRequest; // Mengambil DoctorRequest untuk validasi input dokter
+use App\Models\Doctor; // Mengambil model Doctor untuk mengakses tabel doctors
+use App\Models\Poli; // Mengambil model Poli untuk mengakses tabel polis
 
-// Request khusus validasi dokter
-use App\Http\Requests\DoctorRequest;
-
-// Model Doctor
-use App\Models\Doctor;
-
-// Model Poli
-use App\Models\Poli;
-
-// Controller untuk mengelola data dokter
-class DoctorController extends Controller
+class DoctorController extends Controller // Controller untuk mengelola data dokter
 {
-    // Menampilkan daftar dokter
-    public function index()
+    public function index() // Menampilkan halaman daftar dokter
     {
-        return view('admin.doctors.index', [
+        return view('admin.doctors.index', [ // Membuka file view admin/doctors/index.blade.php
 
-            // Ambil data dokter beserta relasi poli
-            // Urutkan terbaru
-            // Tampilkan 12 data per halaman
-            'doctors' => Doctor::with('poli')
-                ->latest()
-                ->paginate(12),
+            'doctors' => Doctor::with('poli') // Mengambil data dokter beserta data poli yang terkait
+                ->latest() // Mengurutkan data dari yang terbaru
+                ->paginate(12), // Menampilkan 12 data dokter per halaman
         ]);
     }
 
-    // Menampilkan form tambah dokter
-    public function create()
+    public function create() // Menampilkan form tambah dokter
     {
-        return view('admin.doctors.form', [
+        return view('admin.doctors.form', [ // Membuka file view admin/doctors/form.blade.php
 
-            // Membuat object dokter kosong
-            'doctor' => new Doctor(),
+            'doctor' => new Doctor(), // Membuat object dokter kosong untuk form tambah data
 
-            // Mengambil semua data poli
-            'polis' => Poli::all(),
+            'polis' => Poli::all(), // Mengambil seluruh data poli untuk pilihan dropdown
         ]);
     }
 
-    // Menyimpan dokter baru ke database
-    public function store(DoctorRequest $request)
+    public function store(DoctorRequest $request) // Menyimpan data dokter baru
     {
-        // Simpan data yang sudah lolos validasi
-        Doctor::create(
-            $request->validated()
+        Doctor::create( // Membuat data dokter baru di database
+            $request->validated() // Mengambil data yang sudah lolos validasi
         );
 
-        // Kembali ke halaman daftar dokter
-        return redirect()
-            ->route('admin.doctors.index')
+        return redirect() // Redirect ke halaman daftar dokter
+            ->route('admin.doctors.index') // Tujuan route daftar dokter
             ->with(
-                'success',
-                'Dokter baru berhasil ditambahkan.'
+                'success', // Jenis pesan
+                'Dokter baru berhasil ditambahkan.' // Pesan sukses
             );
     }
 
-    // Menampilkan form edit dokter
-    public function edit(Doctor $doctor)
+    public function edit(Doctor $doctor) // Menampilkan form edit dokter
     {
-        return view('admin.doctors.form', [
+        return view('admin.doctors.form', [ // Membuka file form yang sama seperti tambah dokter
 
-            // Data dokter yang akan diedit
-            'doctor' => $doctor,
+            'doctor' => $doctor, // Mengirim data dokter yang akan diedit
 
-            // Semua data poli
-            'polis' => Poli::all(),
+            'polis' => Poli::all(), // Mengambil seluruh data poli untuk dropdown pilihan
         ]);
     }
 
-    // Memperbarui data dokter
     public function update(
-        DoctorRequest $request,
-        Doctor $doctor
+        DoctorRequest $request, // Menangkap data form yang sudah divalidasi
+        Doctor $doctor // Data dokter yang akan diperbarui
     )
     {
-        // Update data dokter
-        $doctor->update(
-            $request->validated()
+        $doctor->update( // Memperbarui data dokter di database
+            $request->validated() // Menggunakan data yang sudah lolos validasi
         );
 
-        // Kembali ke daftar dokter
-        return redirect()
-            ->route('admin.doctors.index')
+        return redirect() // Redirect ke halaman daftar dokter
+            ->route('admin.doctors.index') // Route daftar dokter
             ->with(
-                'success',
-                'Data dokter berhasil diperbarui.'
+                'success', // Jenis pesan
+                'Data dokter berhasil diperbarui.' // Pesan sukses
             );
     }
 
-    // Menghapus dokter
-    public function destroy(Doctor $doctor)
+    public function destroy(Doctor $doctor) // Menghapus data dokter
     {
-        // Hapus data dokter
-        $doctor->delete();
+        $doctor->delete(); // Menghapus data dokter dari database
 
-        // Kembali ke halaman sebelumnya
-        return back()->with(
-            'success',
-            'Dokter berhasil dihapus.'
+        return back()->with( // Kembali ke halaman sebelumnya
+            'success', // Jenis pesan
+            'Dokter berhasil dihapus.' // Pesan sukses
         );
     }
 }

@@ -1,89 +1,82 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace App\Http\Controllers\Admin; // Menentukan lokasi controller ini berada di folder Admin
 
-return new class extends Migration
+use App\Http\Controllers\Controller; // Mengambil controller utama Laravel
+use App\Http\Requests\DoctorRequest; // Mengambil DoctorRequest untuk validasi input dokter
+use App\Models\Doctor; // Mengambil model Doctor untuk mengakses tabel doctors
+use App\Models\Poli; // Mengambil model Poli untuk mengakses tabel polis
+
+class DoctorController extends Controller // Controller untuk mengelola data dokter
 {
-    public function up(): void
+    public function index() // Menampilkan halaman daftar dokter
     {
-        Schema::create('polis', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->text('description')->nullable();
-            $table->timestamps();
-        });
+        return view('admin.doctors.index', [ // Membuka file view admin/doctors/index.blade.php
 
-        Schema::create('doctors', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('poli_id')->constrained('polis')->cascadeOnDelete();
-            $table->string('name');
-            $table->string('specialty');
-            $table->string('photo')->nullable();
-            $table->unsignedTinyInteger('experience_years')->default(1);
-            $table->unsignedTinyInteger('daily_quota')->default(20);
-            $table->timestamps();
-        });
-
-        Schema::create('schedules', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('doctor_id')->constrained('doctors')->cascadeOnDelete();
-            $table->enum('weekday', ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']);
-            $table->time('start_time');
-            $table->time('end_time');
-            $table->timestamps();
-        });
-
-        Schema::create('bookings', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('doctor_id')->constrained('doctors')->cascadeOnDelete();
-            $table->date('visit_date');
-            $table->string('queue_number');
-            $table->enum('status', ['menunggu', 'dipanggil', 'selesai', 'dibatalkan'])->default('menunggu');
-            $table->text('notes')->nullable();
-            $table->string('estimated_wait')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('queues', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('booking_id')->constrained('bookings')->cascadeOnDelete();
-            $table->foreignId('doctor_id')->constrained('doctors')->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->date('date');
-            $table->string('number');
-            $table->enum('status', ['menunggu', 'dipanggil', 'selesai', 'dibatalkan'])->default('menunggu');
-            $table->timestamps();
-        });
-
-        Schema::create('activity_logs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->string('action');
-            $table->json('metadata')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('notifications', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->string('type');
-            $table->morphs('notifiable');
-            $table->text('data');
-            $table->timestamp('read_at')->nullable();
-            $table->timestamps();
-        });
+            'doctors' => Doctor::with('poli') // Mengambil data dokter beserta data poli yang terkait
+                ->latest() // Mengurutkan data dari yang terbaru
+                ->paginate(12), // Menampilkan 12 data dokter per halaman
+        ]);
     }
 
-    public function down(): void
+    public function create() // Menampilkan form tambah dokter
     {
-        Schema::dropIfExists('notifications');
-        Schema::dropIfExists('activity_logs');
-        Schema::dropIfExists('queues');
-        Schema::dropIfExists('bookings');
-        Schema::dropIfExists('schedules');
-        Schema::dropIfExists('doctors');
-        Schema::dropIfExists('polis');
+        return view('admin.doctors.form', [ // Membuka file view admin/doctors/form.blade.php
+
+            'doctor' => new Doctor(), // Membuat object dokter kosong untuk form tambah data
+
+            'polis' => Poli::all(), // Mengambil seluruh data poli untuk pilihan dropdown
+        ]);
     }
-};
+
+    public function store(DoctorRequest $request) // Menyimpan data dokter baru
+    {
+        Doctor::create( // Membuat data dokter baru di database
+            $request->validated() // Mengambil data yang sudah lolos validasi
+        );
+
+        return redirect() // Redirect ke halaman daftar dokter
+            ->route('admin.doctors.index') // Tujuan route daftar dokter
+            ->with(
+                'success', // Jenis pesan
+                'Dokter baru berhasil ditambahkan.' // Pesan sukses
+            );
+    }
+
+    public function edit(Doctor $doctor) // Menampilkan form edit dokter
+    {
+        return view('admin.doctors.form', [ // Membuka file form yang sama seperti tambah dokter
+
+            'doctor' => $doctor, // Mengirim data dokter yang akan diedit
+
+            'polis' => Poli::all(), // Mengambil seluruh data poli untuk dropdown pilihan
+        ]);
+    }
+
+    public function update(
+        DoctorRequest $request, // Menangkap data form yang sudah divalidasi
+        Doctor $doctor // Data dokter yang akan diperbarui
+    )
+    {
+        $doctor->update( // Memperbarui data dokter di database
+            $request->validated() // Menggunakan data yang sudah lolos validasi
+        );
+
+        return redirect() // Redirect ke halaman daftar dokter
+            ->route('admin.doctors.index') // Route daftar dokter
+            ->with(
+                'success', // Jenis pesan
+                'Data dokter berhasil diperbarui.' // Pesan sukses
+            );
+    }
+
+    public function destroy(Doctor $doctor) // Menghapus data dokter
+    {
+        $doctor->delete(); // Menghapus data dokter dari database
+
+        return back()->with( // Kembali ke halaman sebelumnya
+            'success', // Jenis pesan
+            'Dokter berhasil dihapus.' // Pesan sukses
+        );
+    }
+}

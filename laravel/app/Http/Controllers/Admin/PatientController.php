@@ -1,74 +1,60 @@
 <?php
 
-// Lokasi file controller
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Admin; // Menentukan lokasi controller ini berada di folder Admin
 
-// Controller utama Laravel
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Controller; // Mengambil controller utama Laravel
+use App\Models\User; // Mengambil model User untuk mengakses tabel users
+use Illuminate\Http\Request; // Digunakan untuk menangkap input/filter dari user
 
-// Model User
-use App\Models\User;
-
-// Untuk mengambil data request dari form
-use Illuminate\Http\Request;
-
-// Controller untuk mengelola data pasien
-class PatientController extends Controller
+class PatientController extends Controller // Controller untuk mengelola data pasien
 {
-    // Menampilkan daftar pasien
-    public function index(Request $request)
+    public function index(Request $request) // Menampilkan halaman daftar pasien
     {
-        // Ambil user yang role-nya patient
-        $query = User::where('role', 'patient');
+        $query = User::where('role', 'patient'); // Mengambil user yang memiliki role patient
 
-        // Jika admin mengisi kolom pencarian
-        if ($request->filled('search')) {
+        if ($request->filled('search')) { // Jika admin mengisi kolom pencarian
 
-            $query->where(function ($sub) use ($request) {
+            $query->where(function ($sub) use ($request) { // Membuat kondisi pencarian
 
-                // Cari berdasarkan nama
-                $sub->where('name', 'like', '%'.$request->search.'%')
+                $sub->where('name', 'like', '%'.$request->search.'%') // Cari berdasarkan nama pasien
 
-                    // Atau email
-                    ->orWhere('email', 'like', '%'.$request->search.'%')
+                    ->orWhere('email', 'like', '%'.$request->search.'%') // Cari berdasarkan email pasien
 
-                    // Atau nomor telepon
-                    ->orWhere('phone', 'like', '%'.$request->search.'%');
+                    ->orWhere('phone', 'like', '%'.$request->search.'%'); // Cari berdasarkan nomor telepon pasien
             });
         }
 
-        // Kirim data ke halaman daftar pasien
-        return view('admin.patients.index', [
+        return view('admin.patients.index', [ // Membuka file view admin/patients/index.blade.php
 
-            // Urutkan data terbaru
-            // Tampilkan 15 data per halaman
-            'patients' => $query
-                ->latest()
-                ->paginate(15)
-                ->withQueryString(),
+            'patients' => $query // Menggunakan query pasien yang sudah difilter
+
+                ->latest() // Mengurutkan data dari yang terbaru
+
+                ->paginate(15) // Menampilkan 15 data per halaman
+
+                ->withQueryString(), // Menyimpan parameter pencarian saat pindah halaman
         ]);
     }
 
-    // Menghapus pasien
-    public function destroy(User $patient)
+    public function destroy(User $patient) // Menghapus data pasien
     {
-        // Cek apakah user yang dipilih adalah admin
-        if ($patient->isAdmin()) {
+        if ($patient->isAdmin()) { // Memeriksa apakah user yang dipilih adalah admin
 
-            // Jika admin, batalkan penghapusan
-            return back()->with(
-                'error',
-                'Tidak dapat menghapus admin.'
+            return back()->with( // Kembali ke halaman sebelumnya
+
+                'error', // Jenis pesan error
+
+                'Tidak dapat menghapus admin.' // Pesan jika mencoba menghapus admin
             );
         }
 
-        // Hapus data pasien
-        $patient->delete();
+        $patient->delete(); // Menghapus data pasien dari database
 
-        // Kembali ke halaman sebelumnya
-        return back()->with(
-            'success',
-            'Data pasien berhasil dihapus.'
+        return back()->with( // Kembali ke halaman sebelumnya
+
+            'success', // Jenis pesan sukses
+
+            'Data pasien berhasil dihapus.' // Pesan sukses setelah pasien dihapus
         );
     }
 }

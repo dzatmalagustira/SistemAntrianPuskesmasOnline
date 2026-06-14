@@ -1,168 +1,116 @@
 <?php
 
-// Lokasi file controller ini
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Admin; // Menentukan lokasi controller ini berada di folder Admin
 
-// Controller utama bawaan Laravel
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Controller; // Mengambil controller utama Laravel
+use App\Models\Booking; // Mengambil model Booking untuk mengakses tabel bookings
+use App\Models\Doctor; // Mengambil model Doctor untuk mengakses tabel doctors
+use App\Models\Poli; // Mengambil model Poli untuk mengakses tabel polis
+use App\Models\User; // Mengambil model User untuk mengakses tabel users
+use Illuminate\Http\Request; // Digunakan untuk menangkap input/filter dari user
+use Illuminate\Support\Facades\DB; // Digunakan untuk query database khusus seperti COUNT(*)
 
-// Model yang dipakai untuk mengambil data dari database
-use App\Models\Booking;
-use App\Models\Doctor;
-use App\Models\Poli;
-use App\Models\User;
-
-// Untuk menangkap input/filter dari request
-use Illuminate\Http\Request;
-
-// Untuk menggunakan query mentah seperti COUNT(*)
-use Illuminate\Support\Facades\DB;
-
-// Controller dashboard admin
-class DashboardController extends Controller
+class DashboardController extends Controller // Controller untuk mengatur dashboard dan laporan admin
 {
-    // Method untuk menampilkan halaman dashboard admin
-    public function index(Request $request)
+    public function index(Request $request) // Menampilkan halaman dashboard admin
     {
-        // Mengambil tanggal hari ini dalam format Y-m-d
-        $today = now()->toDateString();
+        $today = now()->toDateString(); // Mengambil tanggal hari ini dalam format Y-m-d
 
-        // Mengambil data booking hari ini
-        // Sekaligus mengambil relasi doctor, poli, dan user
-        $bookings = Booking::with('doctor.poli', 'user')
-            ->whereDate('visit_date', $today)
-            ->latest();
+        $bookings = Booking::with('doctor.poli', 'user') // Mengambil data booking beserta relasi dokter, poli, dan pasien
+            ->whereDate('visit_date', $today) // Mengambil booking yang tanggal kunjungannya hari ini
+            ->latest(); // Mengurutkan data booking dari yang terbaru
 
-        // Data ringkasan untuk card dashboard
-        $summary = [
+        $summary = [ // Membuat data ringkasan untuk card dashboard admin
 
-            // Menghitung total user yang role-nya patient/pasien
-            'total_pasien' => User::where('role', 'patient')->count(),
+            'total_pasien' => User::where('role', 'patient')->count(), // Menghitung jumlah user yang rolenya patient/pasien
 
-            // Menghitung seluruh data booking
-            'total_booking' => Booking::count(),
+            'total_booking' => Booking::count(), // Menghitung semua data booking yang ada di database
 
-            // Menghitung total dokter
-            'total_dokter' => Doctor::count(),
+            'total_dokter' => Doctor::count(), // Menghitung semua data dokter yang ada di database
 
-            // Menghitung jumlah antrian khusus hari ini
-            'today_queue' => $bookings->count(),
+            'today_queue' => $bookings->count(), // Menghitung jumlah antrian/booking khusus hari ini
         ];
 
-        // Menghitung jumlah booking berdasarkan status
-        // Contoh hasil:
-        // menunggu = 5, dipanggil = 2, selesai = 10
-        $statusCounts = Booking::select('status', DB::raw('count(*) as total'))
-            ->groupBy('status')
-            ->pluck('total', 'status')
-            ->all();
+        $statusCounts = Booking::select('status', DB::raw('count(*) as total')) // Mengambil status dan menghitung jumlah tiap status
+            ->groupBy('status') // Mengelompokkan data berdasarkan status booking
+            ->pluck('total', 'status') // Mengubah hasil menjadi format status => total
+            ->all(); // Mengambil semua hasil dalam bentuk array
 
-        // Mengirim data ke view admin.dashboard
-        return view('admin.dashboard', [
+        return view('admin.dashboard', [ // Membuka file view resources/views/admin/dashboard.blade.php
 
-            // Data card ringkasan
-            'summary' => $summary,
+            'summary' => $summary, // Mengirim data ringkasan ke halaman dashboard
 
-            // Mengambil 10 booking terbaru hari ini
-            'recentBookings' => $bookings->take(10)->get(),
+            'recentBookings' => $bookings->take(10)->get(), // Mengambil 10 booking terbaru hari ini
 
-            // Data jumlah booking per status
-            'statusCounts' => $statusCounts,
+            'statusCounts' => $statusCounts, // Mengirim data jumlah booking berdasarkan status
 
-            // Total poli
-            'polisCount' => Poli::count(),
+            'polisCount' => Poli::count(), // Mengirim total jumlah poli ke dashboard
         ]);
     }
 
-    // Method untuk menampilkan halaman laporan admin
-    public function reports(Request $request)
+    public function reports(Request $request) // Menampilkan halaman laporan admin
     {
-        // Mengambil tanggal awal dari filter
-        // Jika kosong, otomatis mulai dari awal bulan ini
-        $start = $request->input(
-            'start_date',
-            now()->startOfMonth()->toDateString()
+        $start = $request->input( // Mengambil tanggal awal dari input/filter
+            'start_date', // Nama input tanggal awal
+            now()->startOfMonth()->toDateString() // Jika kosong, otomatis memakai tanggal awal bulan ini
         );
 
-        // Mengambil tanggal akhir dari filter
-        // Jika kosong, otomatis tanggal hari ini
-        $end = $request->input(
-            'end_date',
-            now()->toDateString()
+        $end = $request->input( // Mengambil tanggal akhir dari input/filter
+            'end_date', // Nama input tanggal akhir
+            now()->toDateString() // Jika kosong, otomatis memakai tanggal hari ini
         );
 
-        // Mengambil data booking berdasarkan rentang tanggal
-        // Sekaligus mengambil data dokter, poli, dan user
-        $bookings = Booking::with('doctor.poli', 'user')
-            ->whereBetween('visit_date', [$start, $end]);
+        $bookings = Booking::with('doctor.poli', 'user') // Mengambil data booking beserta relasi dokter, poli, dan pasien
+            ->whereBetween('visit_date', [$start, $end]); // Mengambil booking berdasarkan rentang tanggal awal sampai tanggal akhir
 
-        // Menghitung jumlah booking berdasarkan status
-        // clone dipakai agar query utama $bookings tidak rusak/berubah
-        $statusCounts = (clone $bookings)
-            ->select('status', DB::raw('count(*) as total'))
-            ->groupBy('status')
-            ->pluck('total', 'status')
-            ->all();
+        $statusCounts = (clone $bookings) // Menyalin query booking agar query utama tidak berubah
+            ->select('status', DB::raw('count(*) as total')) // Mengambil status dan menghitung jumlah tiap status
+            ->groupBy('status') // Mengelompokkan data berdasarkan status
+            ->pluck('total', 'status') // Mengubah hasil menjadi format status => total
+            ->all(); // Mengambil semua hasil dalam bentuk array
 
-        // Menghitung jumlah booking berdasarkan poli
-        $poliCounts = (clone $bookings)
+        $poliCounts = (clone $bookings) // Menyalin query booking untuk menghitung jumlah booking berdasarkan poli
 
-            // Menghubungkan tabel bookings dengan doctors
-            ->join('doctors', 'bookings.doctor_id', '=', 'doctors.id')
+            ->join('doctors', 'bookings.doctor_id', '=', 'doctors.id') // Menghubungkan tabel bookings dengan tabel doctors
 
-            // Menghubungkan tabel doctors dengan polis
-            ->join('polis', 'doctors.poli_id', '=', 'polis.id')
+            ->join('polis', 'doctors.poli_id', '=', 'polis.id') // Menghubungkan tabel doctors dengan tabel polis
 
-            // Mengambil nama poli dan jumlah booking
-            ->select('polis.name', DB::raw('count(*) as total'))
+            ->select('polis.name', DB::raw('count(*) as total')) // Mengambil nama poli dan menghitung jumlah booking pada tiap poli
 
-            // Mengelompokkan berdasarkan nama poli
-            ->groupBy('polis.name')
+            ->groupBy('polis.name') // Mengelompokkan data berdasarkan nama poli
 
-            // Urutkan dari jumlah booking terbanyak
-            ->orderByDesc('total')
+            ->orderByDesc('total') // Mengurutkan poli dari jumlah booking terbanyak
 
-            // Ambil hasilnya
-            ->get();
+            ->get(); // Mengambil hasil query
 
-        // Mengirim data laporan ke view admin.reports.index
-        return view('admin.reports.index', [
+        return view('admin.reports.index', [ // Membuka file view resources/views/admin/reports/index.blade.php
 
-            // Tanggal awal laporan
-            'start' => $start,
+            'start' => $start, // Mengirim tanggal awal laporan ke view
 
-            // Tanggal akhir laporan
-            'end' => $end,
+            'end' => $end, // Mengirim tanggal akhir laporan ke view
 
-            // Total booking pada rentang tanggal
-            'totalBookings' => (clone $bookings)->count(),
+            'totalBookings' => (clone $bookings)->count(), // Menghitung total booking pada rentang tanggal tersebut
 
-            // Total booking yang statusnya selesai
-            'completedBookings' => (clone $bookings)
-                ->where('status', 'selesai')
-                ->count(),
+            'completedBookings' => (clone $bookings) // Menghitung booking yang sudah selesai
+                ->where('status', 'selesai') // Filter status selesai
+                ->count(), // Mengambil jumlah data
 
-            // Total booking yang masih menunggu atau dipanggil
-            'waitingBookings' => (clone $bookings)
-                ->whereIn('status', ['menunggu', 'dipanggil'])
-                ->count(),
+            'waitingBookings' => (clone $bookings) // Menghitung booking yang masih menunggu atau sedang dipanggil
+                ->whereIn('status', ['menunggu', 'dipanggil']) // Filter status menunggu dan dipanggil
+                ->count(), // Mengambil jumlah data
 
-            // Total booking yang dibatalkan
-            'cancelledBookings' => (clone $bookings)
-                ->where('status', 'dibatalkan')
-                ->count(),
+            'cancelledBookings' => (clone $bookings) // Menghitung booking yang dibatalkan
+                ->where('status', 'dibatalkan') // Filter status dibatalkan
+                ->count(), // Mengambil jumlah data
 
-            // Jumlah booking berdasarkan status
-            'statusCounts' => $statusCounts,
+            'statusCounts' => $statusCounts, // Mengirim data jumlah booking berdasarkan status ke view
 
-            // Jumlah booking berdasarkan poli
-            'poliCounts' => $poliCounts,
+            'poliCounts' => $poliCounts, // Mengirim data jumlah booking berdasarkan poli ke view
 
-            // 10 booking terbaru berdasarkan rentang tanggal
-            'latestBookings' => (clone $bookings)
-                ->latest()
-                ->take(10)
-                ->get(),
+            'latestBookings' => (clone $bookings) // Mengambil data booking terbaru berdasarkan rentang tanggal
+                ->latest() // Mengurutkan dari data terbaru
+                ->take(10) // Mengambil maksimal 10 data
+                ->get(), // Menjalankan query dan mengambil datanya
         ]);
     }
 }

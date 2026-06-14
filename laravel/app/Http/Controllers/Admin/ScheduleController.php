@@ -1,108 +1,94 @@
 <?php
 
-// Namespace lokasi file controller
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Admin; // Menentukan lokasi controller ini berada di folder Admin
 
-// Controller bawaan Laravel
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Controller; // Mengambil controller utama Laravel
+use App\Http\Requests\ScheduleRequest; // Mengambil class validasi khusus data jadwal
+use App\Models\Doctor; // Mengambil model Doctor untuk mengakses tabel doctors
+use App\Models\Schedule; // Mengambil model Schedule untuk mengakses tabel schedules
 
-// Request khusus validasi jadwal
-use App\Http\Requests\ScheduleRequest;
-
-// Model Doctor
-use App\Models\Doctor;
-
-// Model Schedule
-use App\Models\Schedule;
-
-// Controller untuk mengelola jadwal dokter
-class ScheduleController extends Controller
+class ScheduleController extends Controller // Controller untuk mengelola jadwal dokter
 {
-    // Menampilkan daftar jadwal dokter
-    public function index()
+    public function index() // Menampilkan halaman daftar jadwal dokter
     {
-        return view('admin.schedules.index', [
+        return view('admin.schedules.index', [ // Membuka file view admin/schedules/index.blade.php
 
-            // Mengambil data jadwal beserta relasi dokter dan poli
-            // latest() = data terbaru di atas
-            // paginate(12) = 12 data per halaman
-            'schedules' => Schedule::with('doctor.poli')
-                ->latest()
-                ->paginate(12),
+            'schedules' => Schedule::with('doctor.poli') // Mengambil data jadwal beserta dokter dan poli terkait
+
+                ->latest() // Mengurutkan data dari yang terbaru
+
+                ->paginate(12), // Menampilkan 12 data per halaman
         ]);
     }
 
-    // Menampilkan form tambah jadwal
-    public function create()
+    public function create() // Menampilkan form tambah jadwal dokter
     {
-        return view('admin.schedules.form', [
+        return view('admin.schedules.form', [ // Membuka file view admin/schedules/form.blade.php
 
-            // Objek jadwal kosong
-            'schedule' => new Schedule(),
+            'schedule' => new Schedule(), // Membuat object jadwal kosong untuk form tambah data
 
-            // Mengambil seluruh dokter beserta poli
-            // untuk dropdown pilihan dokter
-            'doctors' => Doctor::with('poli')->get(),
+            'doctors' => Doctor::with('poli')->get(), // Mengambil seluruh dokter beserta poli untuk pilihan dropdown
         ]);
     }
 
-    // Menyimpan jadwal baru
-    public function store(ScheduleRequest $request)
+    public function store(ScheduleRequest $request) // Menyimpan jadwal dokter baru
     {
-        // Menyimpan data yang sudah lolos validasi
-        Schedule::create(
-            $request->validated()
+        Schedule::create( // Membuat data jadwal baru di database
+
+            $request->validated() // Menggunakan data yang sudah lolos validasi
         );
 
-        return redirect()
-            ->route('admin.schedules.index')
+        return redirect() // Redirect ke halaman daftar jadwal
+
+            ->route('admin.schedules.index') // Tujuan route daftar jadwal
+
             ->with(
-                'success',
-                'Jadwal dokter berhasil disimpan.'
+                'success', // Jenis pesan
+
+                'Jadwal dokter berhasil disimpan.' // Pesan sukses
             );
     }
 
-    // Menampilkan form edit jadwal
-    public function edit(Schedule $schedule)
+    public function edit(Schedule $schedule) // Menampilkan form edit jadwal
     {
-        return view('admin.schedules.form', [
+        return view('admin.schedules.form', [ // Menggunakan form yang sama seperti tambah jadwal
 
-            // Data jadwal yang dipilih
-            'schedule' => $schedule,
+            'schedule' => $schedule, // Mengirim data jadwal yang akan diedit
 
-            // Daftar dokter untuk dropdown
-            'doctors' => Doctor::with('poli')->get(),
+            'doctors' => Doctor::with('poli')->get(), // Mengambil seluruh dokter untuk dropdown pilihan
         ]);
     }
 
-    // Memperbarui jadwal
     public function update(
-        ScheduleRequest $request,
-        Schedule $schedule
+        ScheduleRequest $request, // Menangkap data form yang sudah divalidasi
+        Schedule $schedule // Data jadwal yang akan diperbarui
     )
     {
-        // Update data jadwal
-        $schedule->update(
-            $request->validated()
+        $schedule->update( // Mengubah data jadwal di database
+
+            $request->validated() // Menggunakan data yang sudah lolos validasi
         );
 
-        return redirect()
-            ->route('admin.schedules.index')
+        return redirect() // Redirect ke halaman daftar jadwal
+
+            ->route('admin.schedules.index') // Tujuan route daftar jadwal
+
             ->with(
-                'success',
-                'Jadwal berhasil diperbarui.'
+                'success', // Jenis pesan
+
+                'Jadwal berhasil diperbarui.' // Pesan sukses
             );
     }
 
-    // Menghapus jadwal
-    public function destroy(Schedule $schedule)
+    public function destroy(Schedule $schedule) // Menghapus jadwal dokter
     {
-        // Hapus jadwal dari database
-        $schedule->delete();
+        $schedule->delete(); // Menghapus data jadwal dari database
 
-        return back()->with(
-            'success',
-            'Jadwal berhasil dihapus.'
+        return back()->with( // Kembali ke halaman sebelumnya
+
+            'success', // Jenis pesan
+
+            'Jadwal berhasil dihapus.' // Pesan sukses setelah data dihapus
         );
     }
 }

@@ -1,103 +1,87 @@
 <?php
 
-// Namespace menunjukkan lokasi file controller ini
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Admin; // Menentukan lokasi controller ini berada di folder Admin
 
-// Memanggil Controller bawaan Laravel
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Controller; // Mengambil controller utama Laravel
+use App\Http\Requests\PoliRequest; // Mengambil class validasi khusus data Poli
+use App\Models\Poli; // Mengambil model Poli untuk mengakses tabel polis
 
-// Memanggil class validasi khusus untuk data Poli
-use App\Http\Requests\PoliRequest;
-
-// Memanggil model Poli untuk berinteraksi dengan database
-use App\Models\Poli;
-
-// Controller untuk mengelola data Poli
-class PoliController extends Controller
+class PoliController extends Controller // Controller untuk mengelola data poli
 {
-    // Menampilkan daftar semua poli
-    public function index()
+    public function index() // Menampilkan halaman daftar poli
     {
-        return view('admin.polis.index', [
+        return view('admin.polis.index', [ // Membuka file view admin/polis/index.blade.php
 
-            // Mengambil data poli dari database
-            // latest() = urutkan data terbaru
-            // paginate(12) = tampilkan 12 data per halaman
-            'polis' => Poli::latest()->paginate(12),
+            'polis' => Poli::latest() // Mengambil data poli dan mengurutkannya dari yang terbaru
+
+                ->paginate(12), // Menampilkan 12 data per halaman
         ]);
     }
 
-    // Menampilkan form tambah poli
-    public function create()
+    public function create() // Menampilkan form tambah poli
     {
-        return view('admin.polis.form', [
+        return view('admin.polis.form', [ // Membuka file view admin/polis/form.blade.php
 
-            // Membuat objek poli kosong
-            // Digunakan agar form tambah dan edit bisa memakai view yang sama
-            'poli' => new Poli()
+            'poli' => new Poli() // Membuat object poli kosong untuk form tambah data
         ]);
     }
 
-    // Menyimpan data poli baru ke database
-    public function store(PoliRequest $request)
+    public function store(PoliRequest $request) // Menyimpan data poli baru ke database
     {
-        // Menyimpan data yang sudah lolos validasi
-        Poli::create(
-            $request->validated()
+        Poli::create( // Membuat data poli baru
+
+            $request->validated() // Menggunakan data yang sudah lolos validasi
         );
 
-        // Redirect ke halaman daftar poli
-        // dengan pesan sukses
-        return redirect()
-            ->route('admin.polis.index')
+        return redirect() // Redirect ke halaman daftar poli
+
+            ->route('admin.polis.index') // Tujuan route daftar poli
+
             ->with(
-                'success',
-                'Poli baru berhasil ditambahkan.'
+                'success', // Jenis pesan
+
+                'Poli baru berhasil ditambahkan.' // Pesan sukses
             );
     }
 
-    // Menampilkan form edit poli
-    public function edit(Poli $poli)
+    public function edit(Poli $poli) // Menampilkan form edit poli
     {
-        return view('admin.polis.form', [
+        return view('admin.polis.form', [ // Menggunakan form yang sama dengan tambah poli
 
-            // Mengirim data poli yang akan diedit
-            'poli' => $poli
+            'poli' => $poli // Mengirim data poli yang akan diedit
         ]);
     }
 
-    // Memperbarui data poli
     public function update(
-        PoliRequest $request,
-        Poli $poli
+        PoliRequest $request, // Menangkap data form yang sudah divalidasi
+        Poli $poli // Data poli yang akan diperbarui
     )
     {
-        // Update data poli berdasarkan input form
-        $poli->update(
-            $request->validated()
+        $poli->update( // Mengubah data poli di database
+
+            $request->validated() // Menggunakan data yang sudah lolos validasi
         );
 
-        // Kembali ke halaman daftar poli
-        // dengan pesan sukses
-        return redirect()
-            ->route('admin.polis.index')
+        return redirect() // Redirect ke halaman daftar poli
+
+            ->route('admin.polis.index') // Tujuan route daftar poli
+
             ->with(
-                'success',
-                'Data poli berhasil diperbarui.'
+                'success', // Jenis pesan
+
+                'Data poli berhasil diperbarui.' // Pesan sukses
             );
     }
 
-    // Menghapus data poli
-    public function destroy(Poli $poli)
+    public function destroy(Poli $poli) // Menghapus data poli
     {
-        // Hapus data poli dari database
-        $poli->delete();
+        $poli->delete(); // Menghapus data poli dari database
 
-        // Kembali ke halaman sebelumnya
-        // dengan pesan sukses
-        return back()->with(
-            'success',
-            'Poli berhasil dihapus.'
+        return back()->with( // Kembali ke halaman sebelumnya
+
+            'success', // Jenis pesan
+
+            'Poli berhasil dihapus.' // Pesan sukses setelah data dihapus
         );
     }
 }

@@ -1,74 +1,70 @@
 <?php
 
-namespace App\Models;
+namespace App\Models; // Menentukan lokasi model ini berada di folder App\Models
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+// use Illuminate\Contracts\Auth\MustVerifyEmail; // Digunakan jika ingin fitur verifikasi email (saat ini tidak dipakai)
 
-class User extends Authenticatable
+use Database\Factories\UserFactory; // Factory untuk membuat data dummy user
+use Illuminate\Database\Eloquent\Factories\HasFactory; // Mengaktifkan fitur Factory Laravel
+use Illuminate\Foundation\Auth\User as Authenticatable; // Class User khusus Laravel untuk login/authentication
+use Illuminate\Notifications\Notifiable; // Agar user bisa menerima notifikasi
+use Laravel\Sanctum\HasApiTokens; // Digunakan jika membuat API Token dengan Laravel Sanctum
+
+class User extends Authenticatable // Model User yang terhubung ke tabel users
 {
-    use HasApiTokens;
+    use HasApiTokens; // Mengaktifkan fitur API Token
+
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable; // Mengaktifkan Factory dan Notifikasi
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
+     * Kolom yang boleh diisi menggunakan create() atau update()
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'role',
-        'phone',
-        'address',
+        'name', // Nama user
+        'email', // Email user
+        'password', // Password user
+        'role', // Role user (admin atau patient)
+        'phone', // Nomor telepon user
+        'address', // Alamat user
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
+     * Kolom yang tidak akan ditampilkan saat data user diubah menjadi JSON/Array
      */
     protected $hidden = [
-        'password',
-        'remember_token',
+        'password', // Menyembunyikan password
+        'remember_token', // Menyembunyikan token remember me
     ];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Mengubah tipe data otomatis
      */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'email_verified_at' => 'datetime', // Mengubah kolom email_verified_at menjadi tipe tanggal/waktu
+            'password' => 'hashed', // Password otomatis di-hash/enkripsi sebelum disimpan
         ];
     }
 
-    public function bookings()
+    public function bookings() // Relasi User ke Booking
     {
-        return $this->hasMany(Booking::class);
+        return $this->hasMany(Booking::class); // Satu user dapat memiliki banyak booking
     }
 
-    public function activityLogs()
+    public function activityLogs() // Relasi User ke ActivityLog
     {
-        return $this->hasMany(ActivityLog::class);
+        return $this->hasMany(ActivityLog::class); // Satu user dapat memiliki banyak riwayat aktivitas
     }
 
-    public function isAdmin(): bool
+    public function isAdmin(): bool // Mengecek apakah user adalah admin
     {
-        return $this->role === 'admin';
+        return $this->role === 'admin'; // Mengembalikan true jika role admin
     }
 
-    public function isPatient(): bool
+    public function isPatient(): bool // Mengecek apakah user adalah pasien
     {
-        return $this->role === 'patient';
+        return $this->role === 'patient'; // Mengembalikan true jika role patient
     }
 }
